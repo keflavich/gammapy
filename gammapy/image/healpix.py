@@ -12,7 +12,7 @@ from .utils import coordinates
 __all__ = ['healpix_to_image', 'image_to_healpix']
 
 
-def healpix_to_image(healpix_data, reference_image, hpx_coord_system):
+def healpix_to_image(healpix_data, reference_image, hpx_coord_system, nest=False):
     """Convert image in HEALPIX format to a normal FITS projection image (e.g. CAR or AIT).
 
     Parameters
@@ -25,6 +25,9 @@ def healpix_to_image(healpix_data, reference_image, hpx_coord_system):
     hpx_coord_system : 'galactic' or 'icrs'
         The target coordinate system.  Should be derived from the HEALPIX
         COORDSYS keyword if it is a FITS file
+    nest : bool
+        The order of the healpix_data, either nested or ring.  Stored in 
+        FITS headers in the ORDERING keyword.
 
     Returns
     -------
@@ -36,10 +39,12 @@ def healpix_to_image(healpix_data, reference_image, hpx_coord_system):
     >>> import healpy as hp
     >>> from astropy.io import fits
     >>> from gammapy.image.healpix import healpix_to_image
-    >>> healpix_data = hp.read_map('healpix.fits')
-    >>> healpix_system = fits.getheader('healpix.fits')['COORDSYS']
+    >>> healpix_filename = 'healpix.fits'
+    >>> healpix_data = hp.read_map(healpix_filename)
+    >>> healpix_system = fits.getheader(healpix_filename,ext=1)['COORDSYS']
+    >>> healpix_isnested = fits.getheader(healpix_filename,ext=1)['ORDERING'] == 'NESTED'
     >>> reference_image = fits.open('reference_image.fits')[0]
-    >>> reprojected_data = healpix_to_image(healpix_data, reference_image, healpix_system)
+    >>> reprojected_data = healpix_to_image(healpix_data, reference_image, healpix_system, nest=healpix_isnested)
     >>> fits.writeto('new_image.fits', reprojected_data, reference_image.header)
     """
     import healpy as hp
@@ -52,7 +57,7 @@ def healpix_to_image(healpix_data, reference_image, hpx_coord_system):
         from ..utils.coordinates import sky_to_sky
         lon, lat = sky_to_sky(lon, lat, ref_coord_system, hpx_coord_system)
     
-    data = hp.get_interp_val(healpix_data, lon, lat)
+    data = hp.get_interp_val(healpix_data, lon, lat, nest=nest)
     return data
 
 
